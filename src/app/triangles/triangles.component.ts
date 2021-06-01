@@ -14,10 +14,11 @@ export class TrianglesComponent implements AfterViewInit {
   @ViewChild("canvas", {static: false}) canvas: ElementRef<HTMLCanvasElement>;
   private ctx: CanvasRenderingContext2D;
   private dots: Dot[] = [];
-  private FPS: number = 60;
+  private FPS: number = 40;
   private dotCount: number;
   private w : number;
   private h: number;
+  private framesLeft: number = 160;
 
   populateDots(): void {
     for (let i = 0; i < this.dotCount; i++) {
@@ -31,6 +32,30 @@ export class TrianglesComponent implements AfterViewInit {
     }
   }
 
+  populateFakeDots(): void {
+    let step = 1/(this.dotCount / 2);
+    for (let j = 0; j < 2; j++) {
+      for (let i = 0; i <= (this.dotCount / 2); i++) {
+        let myDot : Dot = {
+          x: (this.w - 350) / 2 + i * step * 175 * 2 + Math.floor(Math.random() * 40) - 20,
+          sx: (this.w - 350) / 2 + i * step * 175 * 2,
+          y: (this.h - 420) / 2 - Math.abs(i * step * 420 * 2 - 420) + 420 + Math.floor(Math.random() * 40) - 20,
+          sy: (this.h - 420) / 2 - Math.abs(i * step * 420 * 2 - 420) + 420,
+          r: Math.random() + 1,
+          vx: (Math.floor(Math.random() * 40) - 20),
+          vy: (Math.floor(Math.random() * 30) - 15)};
+          if (i <= (this.dotCount / 4)) {
+            if (Math.random() < 0.8 && myDot.vx > 0) myDot.vx *= -1;
+            if (Math.random() < 0.8 && myDot.vy > 0) myDot.vy *= -1;
+          } else {
+            if (Math.random() < 0.8 && myDot.vx < 0) myDot.vx *= -1;
+            if (Math.random() < 0.8 && myDot.vy < 0) myDot.vy *= -1;
+          }
+        this.dots.push(myDot);
+      }
+    }
+  }
+
   ngAfterViewInit(): void {
     this.h = this.wrapper.nativeElement.offsetHeight;
     this.w = this.wrapper.nativeElement.offsetWidth;
@@ -38,13 +63,15 @@ export class TrianglesComponent implements AfterViewInit {
     this.canvas.nativeElement.height = this.h;
     this.canvas.nativeElement.width = this.w;
     this.ctx = this.canvas.nativeElement.getContext('2d');
-    this.dotCount = Math.floor(this.w * this.h / 8000);
-    this.populateDots();
-
+    this.dotCount = Math.floor(this.w * this.h / 10000);
+    //this.populateDots();
+    this.populateFakeDots();
+    
     const i = setInterval(() => {
       this.draw();
       this.update();
     }, 1 / this.FPS);  
+
   }
 
 
@@ -54,6 +81,8 @@ export class TrianglesComponent implements AfterViewInit {
 
   draw(): void {
     this.ctx.clearRect(0,0,this.w,this.h);
+    this.ctx.strokeStyle = "white";
+    this.ctx.lineWidth = 1;
     this.ctx.globalCompositeOperation = "lighter";
 
     this.dots.forEach(dot => {
@@ -84,13 +113,22 @@ export class TrianglesComponent implements AfterViewInit {
   }
 
   update(): void {
-    this.dots.forEach(dot => {
-      dot.x += dot.vx / this.FPS;
-      dot.y += dot.vy / this.FPS;
-      
-      if (dot.x < 0 || dot.x > this.w) dot.x = Math.abs(this.w - dot.x);
-      if (dot.y < 0 || dot.y > this.h) dot.y = Math.abs(this.h - dot.y);
-    });
+    if (this.framesLeft == 0) {
+      this.dots.forEach(dot => {
+
+        dot.x += (dot.vx / this.FPS);
+        dot.y += (dot.vy / this.FPS);
+        
+        if (dot.x < 0 || dot.x > this.w) dot.x = Math.abs(this.w - dot.x);
+        if (dot.y < 0 || dot.y > this.h) dot.y = Math.abs(this.h - dot.y);
+      });
+    } else {
+      this.dots.forEach(dot => {
+        dot.x += (dot.sx - dot.x + dot.vx) / (this.FPS * 2);
+        dot.y += (dot.sy - dot.y + dot.vy) / (this.FPS * 2);
+      });
+      this.framesLeft -= 1;
+    }
   }
 
 }
